@@ -16,11 +16,12 @@ exports.handler = async function(event, context) {
     const payload = JSON.stringify({
       model: 'claude-sonnet-4-5',
       max_tokens: body.max_tokens || 4000,
+      stream: true,
       system: body.system,
       messages: body.messages
     });
 
-    const data = await new Promise((resolve, reject) => {
+    const fullText = await new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.anthropic.com',
         path: '/v1/messages',
@@ -33,34 +34,56 @@ exports.handler = async function(event, context) {
         }
       };
 
+      let result = '';
+      let errorBody = '';
+
       const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            resolve({ status: res.statusCode, body: JSON.parse(data) });
-          } catch(e) {
-            reject(new Error('Failed to parse response'));
+        if (res.statusCode !== 200) {
+          res.on('data', chunk => errorBody += chunk);
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(errorBody);
+              reject(new Error(parsed.error?.message || `API error ${res.statusCode}`));
+            } catch(e) {
+              reject(new Error(`API error ${res.statusCode}`));
+            }
+          });
+          return;
+        }
+
+        res.on('data', chunk => {
+          const lines = chunk.toString().split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') return;
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                  result += parsed.delta.text;
+                }
+              } catch(e) { /* skip malformed lines */ }
+            }
           }
         });
+
+        res.on('end', () => resolve(result));
+        res.on('error', reject);
       });
 
       req.on('error', reject);
+      req.setTimeout(25000, () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
+      });
       req.write(payload);
       req.end();
     });
 
-    if (data.status !== 200) {
-      return {
-        statusCode: data.status,
-        body: JSON.stringify({ error: data.body?.error?.message || 'API error' })
-      };
-    }
-
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data.body)
+      body: JSON.stringify({ content: [{ type: 'text', text: fullText }] })
     };
 
   } catch (err) {
