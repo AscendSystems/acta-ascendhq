@@ -975,11 +975,9 @@ const GPTS = {
     nextDesc: 'Take your Valley Diagnostic output into GPT-02 to define your most defensible niche.',
     inputs: [
       { id: 'intake', label: 'ACTA Intake Form / Background', type: 'textarea', height: 'tall', required: true,
-        hint: 'Paste your completed intake form, or provide: current role, years of experience, recent engagements, industries worked in, employment model (contract/perm), and key achievements.' },
+        hint: 'Upload your completed ACTA intake form (.xlsx) or paste your background. Include: current role, experience, engagements, constraints, employment model.' },
       { id: 'resume', label: 'Resume (recommended)', type: 'textarea', height: 'tall', required: false,
-        hint: 'Paste your current resume. Improves diagnostic accuracy significantly.' },
-      { id: 'constraints', label: 'Constraints', type: 'textarea', height: 'short', required: true,
-        hint: 'Financial constraint, time constraint, location constraint, employment model preference, risk tolerance.' },
+        hint: 'Upload or paste your current resume. Improves diagnostic accuracy significantly.' },
       { id: 'linkedin', label: 'LinkedIn Summary / Headline (optional)', type: 'textarea', height: 'short', required: false,
         hint: 'Paste your current LinkedIn headline and About section if available.' },
     ],
