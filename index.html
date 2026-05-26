@@ -803,18 +803,6 @@
         <button class="btn-primary" onclick="showGPT('gpt01')">Begin with GPT-01 →</button>
         <span style="font-size:13px;color:var(--text-muted)">Start at Valley Diagnostic</span>
       </div>
-
-      <div class="checklist-section" style="margin-top:48px;">
-        <div class="checklist-title">Chain Progress Checklist</div>
-        <div class="checklist-items" id="progressChecklist">
-          <label class="checklist-item"><input type="checkbox"> GPT-01 — Valley Diagnostic complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-02 — Niche Definition complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-03 — Summit Definition complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-04 — Active Target complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-05 — Market Identity complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-06 — Enterprise Demand complete. Output saved.</label>
-          <label class="checklist-item"><input type="checkbox"> GPT-07 — Execution Roadmap complete. Output saved.</label>
-        </div>
       </div>
     </div>
 
@@ -1721,7 +1709,8 @@ function showGPT(gptKey) {
       }
     };
 
-    uploadBtn.appendChild(fileInput);
+    document.body.appendChild(fileInput);
+    uploadBtn.onclick = () => fileInput.click();
 
     const uploadWrapper = document.createElement('div');
     uploadWrapper.style.cssText = 'display:flex;align-items:center;gap:0;';
