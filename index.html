@@ -738,11 +738,9 @@
     </div>
 
     <div class="sidebar-footer">
-      <div class="api-key-section">
-        <div class="api-key-label">Anthropic API Key</div>
-        <input type="password" class="api-key-input" id="apiKeyInput"
-          placeholder="sk-ant-..." oninput="updateApiKeyStatus()">
-        <div class="api-key-status" id="apiKeyStatus">Enter your API key to begin</div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center;line-height:1.5;">
+        Ascend Career Navigation System<br>
+        <span style="color:var(--gold-dim);">acta.aicentral.click</span>
       </div>
     </div>
   </nav>
@@ -1561,37 +1559,11 @@ Review all content carefully. You are responsible for confirming accuracy of all
 };
 
 // ── API FUNCTIONS ──
-function getApiKey() {
-  return document.getElementById('apiKeyInput').value.trim();
-}
-
-function updateApiKeyStatus() {
-  const key = getApiKey();
-  const status = document.getElementById('apiKeyStatus');
-  if (key.startsWith('sk-ant-') && key.length > 20) {
-    status.textContent = '✓ API key set';
-    status.className = 'api-key-status set';
-  } else if (key.length > 0) {
-    status.textContent = 'Key format: sk-ant-...';
-    status.className = 'api-key-status';
-  } else {
-    status.textContent = 'Enter your API key to begin';
-    status.className = 'api-key-status';
-  }
-}
 
 async function callClaudeAPI(systemPrompt, userMessage) {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('API key required. Enter your Anthropic API key in the sidebar.');
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/.netlify/functions/claude', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
