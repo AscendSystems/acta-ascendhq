@@ -875,6 +875,68 @@
 </div>
 
 <script>
+// ── FILE READING ──
+async function readFileContent(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.txt') || name.endsWith('.md') || name.endsWith('.csv')) {
+    return await file.text();
+  }
+  if (name.endsWith('.pdf')) return await readPDF(file);
+  if (name.endsWith('.docx')) return await readDOCX(file);
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) return await readXLSX(file);
+  return await file.text();
+}
+
+async function readPDF(file) {
+  if (!window.pdfjsLib) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text.trim();
+}
+
+async function readDOCX(file) {
+  if (!window.mammoth) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await window.mammoth.extractRawText({ arrayBuffer });
+  return result.value.trim();
+}
+
+async function readXLSX(file) {
+  if (!window.XLSX) {
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(arrayBuffer, { type: 'array' });
+  let text = '';
+  workbook.SheetNames.forEach(sheetName => {
+    text += '\n--- Sheet: ' + sheetName + ' ---\n';
+    const sheet = workbook.Sheets[sheetName];
+    text += window.XLSX.utils.sheet_to_csv(sheet);
+  });
+  return text.trim();
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Failed to load: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
 // ── GLOBAL STATE ──
 let currentGPT = 'home';
 let lastOutput = '';
@@ -1619,11 +1681,56 @@ function showGPT(gptKey) {
     const group = document.createElement('div');
     group.className = 'input-group';
 
+    // Label row with upload button
+    const labelRow = document.createElement('div');
+    labelRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
+
     const label = document.createElement('div');
     label.className = 'input-label';
+    label.style.margin = '0';
     label.innerHTML = inp.label +
       (inp.required ? ' <span class="required">required</span>' : ' <span class="optional">optional</span>');
-    group.appendChild(label);
+
+    const uploadBtn = document.createElement('label');
+    uploadBtn.style.cssText = 'cursor:pointer;font-size:11px;color:var(--gold-dim);border:1px solid var(--border);padding:4px 10px;border-radius:4px;white-space:nowrap;transition:all 0.15s;user-select:none;';
+    uploadBtn.textContent = '↑ Upload file';
+    uploadBtn.title = 'Upload .txt, .pdf, .docx, .md, .xlsx';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.txt,.pdf,.docx,.md,.xlsx,.csv';
+    fileInput.style.display = 'none';
+    fileInput.id = `file_${inp.id}`;
+
+    const statusSpan = document.createElement('span');
+    statusSpan.id = `filestatus_${inp.id}`;
+    statusSpan.style.cssText = 'font-size:11px;color:var(--text-muted);margin-left:8px;';
+
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      statusSpan.textContent = 'Reading...';
+      try {
+        const text = await readFileContent(file);
+        document.getElementById(`input_${inp.id}`).value = text;
+        statusSpan.textContent = `✓ ${file.name}`;
+        statusSpan.style.color = 'var(--success)';
+      } catch(err) {
+        statusSpan.textContent = `Error: ${err.message}`;
+        statusSpan.style.color = '#e07070';
+      }
+    };
+
+    uploadBtn.appendChild(fileInput);
+
+    const uploadWrapper = document.createElement('div');
+    uploadWrapper.style.cssText = 'display:flex;align-items:center;gap:0;';
+    uploadWrapper.appendChild(uploadBtn);
+    uploadWrapper.appendChild(statusSpan);
+
+    labelRow.appendChild(label);
+    labelRow.appendChild(uploadWrapper);
+    group.appendChild(labelRow);
 
     const ta = document.createElement('textarea');
     ta.id = `input_${inp.id}`;
