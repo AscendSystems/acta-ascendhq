@@ -1,6 +1,9 @@
 const https = require('https');
 
 exports.handler = async function(event, context) {
+  // Set function timeout to max
+  context.callbackWaitsForEmptyEventLoop = false;
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -14,7 +17,7 @@ exports.handler = async function(event, context) {
     const body = JSON.parse(event.body);
 
     const payload = JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-haiku-4-5',
       max_tokens: body.max_tokens || 4000,
       stream: true,
       system: body.system,
@@ -62,7 +65,7 @@ exports.handler = async function(event, context) {
                 if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
                   result += parsed.delta.text;
                 }
-              } catch(e) { /* skip malformed lines */ }
+              } catch(e) { /* skip */ }
             }
           }
         });
@@ -72,10 +75,6 @@ exports.handler = async function(event, context) {
       });
 
       req.on('error', reject);
-      req.setTimeout(25000, () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
       req.write(payload);
       req.end();
     });
