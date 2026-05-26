@@ -831,7 +831,7 @@
           <button class="btn-primary" id="runBtn" onclick="runGPT()">
             Run Analysis →
           </button>
-          <button class="btn-secondary" onclick="clearOutput()">Clear</button>
+          <button class="btn-secondary" onclick="clearOutput()">Reset</button>
           <div class="loading-indicator" id="loadingIndicator" style="display:none;">
             <div class="loading-dots"><span></span><span></span><span></span></div>
             <span id="loadingText">Processing...</span>
@@ -1806,6 +1806,16 @@ function clearOutput() {
   document.getElementById('outputSection').style.display = 'none';
   document.getElementById('outputBody').textContent = '';
   document.getElementById('nextStepCta').style.display = 'none';
+  document.getElementById('errorMsg').style.display = 'none';
+  // Clear all input textareas
+  document.querySelectorAll('#inputFields textarea').forEach(ta => ta.value = '');
+  // Reset file status labels
+  document.querySelectorAll('[id^="filestatus_"]').forEach(el => {
+    el.textContent = '';
+    el.style.color = 'var(--text-muted)';
+  });
+  // Reset file inputs
+  document.querySelectorAll('input[type="file"]').forEach(el => el.value = '');
 }
 
 function showError(msg) {
