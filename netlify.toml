@@ -1,8 +1,5 @@
-[functions]
-  node_bundler = "esbuild"
-
-[functions."claude"]
-  timeout = 26
+[build]
+  edge_functions = "netlify/edge-functions"
 
 [build.environment]
   NODE_VERSION = "18"
