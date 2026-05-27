@@ -1608,12 +1608,10 @@ Review all content carefully. You are responsible for confirming accuracy of all
 // ── API FUNCTIONS ──
 
 async function callClaudeAPI(systemPrompt, userMessage) {
-  const response = await fetch('/.netlify/functions/claude', {
+  const response = await fetch('/api/claude-stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }]
     })
@@ -1624,8 +1622,61 @@ async function callClaudeAPI(systemPrompt, userMessage) {
     throw new Error(err.error?.message || `API error: ${response.status}`);
   }
 
+  const contentType = response.headers.get('Content-Type') || '';
+
+  // Handle streaming SSE response
+  if (contentType.includes('text/event-stream')) {
+    return await readStream(response);
+  }
+
+  // Fallback: JSON response
   const data = await response.json();
-  return data.content[0].text;
+  return data.content?.[0]?.text || data.text || '';
+}
+
+async function readStream(response) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  // Show output section immediately for progressive display
+  document.getElementById('outputSection').style.display = 'block';
+  const outputBody = document.getElementById('outputBody');
+  outputBody.textContent = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        if (trimmed === 'data: [DONE]') continue;
+
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            if (parsed.text) {
+              fullText += parsed.text;
+              outputBody.textContent = fullText;
+              // Auto scroll to bottom of output
+              outputBody.scrollTop = outputBody.scrollHeight;
+            }
+          } catch(_) {}
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return fullText;
 }
 
 // ── VIEW MANAGEMENT ──
@@ -1769,7 +1820,7 @@ async function runGPT() {
   // Show loading
   document.getElementById('runBtn').disabled = true;
   document.getElementById('loadingIndicator').style.display = 'flex';
-  document.getElementById('loadingText').textContent = 'Running analysis...';
+  document.getElementById('loadingText').textContent = 'Running analysis — this may take 20–30 seconds...';
   document.getElementById('errorMsg').style.display = 'none';
   document.getElementById('outputSection').style.display = 'none';
 
@@ -1778,7 +1829,8 @@ async function runGPT() {
     lastOutput = output;
     showOutput(output, gpt);
   } catch (err) {
-    showError(err.message);
+    showError('Error: ' + err.message + '. Please try again.');
+    console.error('API error:', err);
   } finally {
     document.getElementById('runBtn').disabled = false;
     document.getElementById('loadingIndicator').style.display = 'none';
