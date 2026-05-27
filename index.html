@@ -515,11 +515,63 @@
     font-size: 14px;
     line-height: 1.7;
     color: var(--text-primary);
-    white-space: pre-wrap;
     font-family: 'DM Sans', sans-serif;
     min-height: 120px;
     position: relative;
   }
+
+  .output-body h1, .output-body h2, .output-body h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    margin: 20px 0 8px;
+    line-height: 1.3;
+  }
+
+  .output-body h1 { font-size: 20px; }
+  .output-body h2 { font-size: 17px; }
+  .output-body h3 { font-size: 15px; color: var(--text-primary); font-family: 'DM Sans', sans-serif; font-weight: 600; }
+
+  .output-section-heading {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin: 24px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .output-field {
+    margin: 4px 0;
+    line-height: 1.6;
+  }
+
+  .output-field-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .output-bullet {
+    padding-left: 16px;
+    margin: 3px 0;
+    color: var(--text-primary);
+  }
+
+  .output-bullet::before { color: var(--gold-dim); }
+
+  .output-para {
+    margin: 8px 0;
+  }
+
+  .output-hr {
+    border: none;
+    border-top: 1px solid var(--border-light);
+    margin: 16px 0;
+  }
+
+  .output-body strong { color: var(--text-primary); font-weight: 600; }
+  .output-body em { color: var(--text-secondary); font-style: italic; }
 
   .output-body.empty {
     color: var(--text-muted);
@@ -942,6 +994,50 @@ function loadScript(src) {
   });
 }
 
+// ── MARKDOWN RENDERER ──
+function renderMarkdown(text) {
+  // Escape HTML first
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Headers: ### ## #
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold **text** or __text__
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+  // Italic *text* or _text_ (single, not double)
+  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+  // ACTA plain-text section headings: "SECTION N — TITLE" or "ARTIFACT HEADER"
+  html = html.replace(/^(SECTION \d+ [—–-].+|ARTIFACT HEADER|VALIDATION \(REQUIRED\))$/gm,
+    '<div class="output-section-heading">$1</div>');
+
+  // Horizontal rules ---
+  html = html.replace(/^---+$/gm, '<hr class="output-hr">');
+
+  // Bullet points: • or - at start of line
+  html = html.replace(/^[•·]\s+(.+)$/gm, '<div class="output-bullet">• $1</div>');
+  html = html.replace(/^-\s+(.+)$/gm, '<div class="output-bullet">– $1</div>');
+
+  // Field labels: "Label:" at start of line (e.g. "Classification:", "Financial Rule:")
+  html = html.replace(/^([A-Z][A-Za-z /&()]+):\s+(.+)$/gm,
+    '<div class="output-field"><span class="output-field-label">$1:</span> $2</div>');
+
+  // Line breaks — convert remaining newlines to <br> but not after block elements
+  html = html.replace(/
+{2,}/g, '</p><p class="output-para">');
+  html = html.replace(/
+/g, '<br>');
+
+  return '<p class="output-para">' + html + '</p>';
+}
+
 // ── GLOBAL STATE ──
 let currentGPT = 'home';
 let lastOutput = '';
@@ -1224,7 +1320,7 @@ GPT-SPECIFIC RULES:
 
 2. CONSTRAINTS — restate constraints EXACTLY as provided. Do not infer, interpret, or fill gaps. Do not convert observations into constraints. If not provided: state 'Not Provided'.
    TIME CONSTRAINT PARSING: If Time Constraint value contains 'ASAP' OR a value of '0-4 weeks' or similar short-window language indicating no gap is acceptable, treat as ASAP Critical regime for all downstream constraint logic. Do not impose a literal date window. The operative constraint is no income gap, not a calendar deadline. State the regime as 'ASAP Critical' in Section 5 and Section 6.
-   CONSTRAINT INTERPRETATION: Distinguish hard constraints from preference-based constraints. Hard constraints (compensation floor, income gap risk, work authorization, risk tolerance) must be converted to categorical allow/invalid rules. Preference-based constraints (remote work, location, travel) must not be converted to categorical invalids unless the intake data confirms the preference is absolute with no exceptions stated. For preference-based constraints: identify the underlying condition that makes the preference binding and state that condition as the rule. Example: 'Remote required' reflects financial pressure and lifestyle stability — the binding rule is 'invalid if role requires full-time onsite presence with relocation cost or lifestyle disruption,' not 'invalid if any physical presence is required.' Do not reference named individuals, personal legal circumstances, or session-specific personal context in constraint binding rules. State binding conditions in structural terms only (financial pressure, dependent care stability, lifestyle disruption cost) so the rule holds for any user. Example: 'USA' on geographic restrictions reflects work authorization and tax/legal jurisdiction — the binding rule is 'invalid if role requires work outside US jurisdiction,' not 'invalid if role has international scope while based in the US.' Do not over-restrict. Under ACUTE mode, over-restriction eliminates valid opportunities and worsens the gap risk.
+   CONSTRAINT INTERPRETATION: Distinguish hard constraints from preference-based constraints. Hard constraints (compensation floor, income gap risk, work authorization, risk tolerance) must be converted to categorical allow/invalid rules. Preference-based constraints (remote work, location, travel) must not be converted to categorical invalids unless the intake data confirms the preference is absolute with no exceptions stated. For preference-based constraints: identify the underlying condition that makes the preference binding and state that condition as the rule. Example: 'Remote required' reflects financial pressure and lifestyle stability — the binding rule is 'invalid if role requires full-time onsite presence with relocation cost or lifestyle disruption,' not 'invalid if any physical presence is required.' Do not reference named individuals, personal legal circumstances, or session-specific personal context in any constraint field — including Financial Constraint, Location Constraint, Risk Constraint, and Other Constraints. State binding conditions in structural terms only (financial pressure, dependent care stability, lifestyle disruption cost, ongoing legal obligations) so the rule holds for any user running the chain. Example of violation: 'Divorced individual with property obligations.' Example of correct form: 'Financial pressure from ongoing legal obligations and dependent care requirements.' Example: 'USA' on geographic restrictions reflects work authorization and tax/legal jurisdiction — the binding rule is 'invalid if role requires work outside US jurisdiction,' not 'invalid if role has international scope while based in the US.' Do not over-restrict. Under ACUTE mode, over-restriction eliminates valid opportunities and worsens the gap risk.
 
 3. DOMINANT CONSTRAINT — identify one primary blocker. One sentence only. This is a hard limit. Do not restate, qualify, or add a second clause. If the constraint requires explanation, that explanation belongs in Section 8, not Section 7. A two-sentence Section 7 is a spec violation regardless of content quality.
    PRIORITY HIERARCHY (mandatory — apply in order):
@@ -1280,6 +1376,7 @@ Decision-Making Level: [state level]
 Stakeholder Level: [state level]
 
 SECTION 2 — MARKET CLASSIFICATION
+[This heading is mandatory and must appear in the output. Do not omit or merge with adjacent sections.]
 Classification: [single clear statement of how the market currently sees the user]
 
 SECTION 3 — SIGNAL ASSESSMENT
@@ -4741,7 +4838,7 @@ async function readStream(response) {
             const parsed = JSON.parse(trimmed.slice(6));
             if (parsed.text) {
               fullText += parsed.text;
-              outputBody.textContent = fullText;
+              outputBody.innerHTML = renderMarkdown(fullText);
               // Auto scroll to bottom of output
               outputBody.scrollTop = outputBody.scrollHeight;
             }
@@ -4916,7 +5013,8 @@ async function runGPT() {
 
 function showOutput(text, gpt) {
   document.getElementById('outputLabel').textContent = `${gpt.id} — Output`;
-  document.getElementById('outputBody').textContent = text;
+  const outputBody = document.getElementById('outputBody');
+  outputBody.innerHTML = renderMarkdown(text);
   document.getElementById('outputSection').style.display = 'block';
 
   // Next step CTA
