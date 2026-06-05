@@ -1030,11 +1030,9 @@ function renderMarkdown(text) {
   html = html.replace(/^([A-Z][A-Za-z /&()]+):\s+(.+)$/gm,
     '<div class="output-field"><span class="output-field-label">$1:</span> $2</div>');
 
-  // Line breaks — convert remaining newlines to <br> but not after block elements
-  html = html.replace(/
-{2,}/g, '</p><p class="output-para">');
-  html = html.replace(/
-/g, '<br>');
+  // Line breaks — convert remaining newlines to <br>
+  html = html.replace(/\n{2,}/g, '</p><p class="output-para">');
+  html = html.replace(/\n/g, '<br>');
 
   return '<p class="output-para">' + html + '</p>';
 }
