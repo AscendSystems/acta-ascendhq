@@ -1012,7 +1012,8 @@ function renderMarkdown(text) {
   html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
 
   // Italic *text* or _text_ (single, not double)
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+  // italic handled by bold removal - simple single star between word chars
+  html = html.replace(/(?:^|\s)\*([^*]+)\*(?:\s|$)/gm, ' <em>$1</em> ');
 
   // ACTA plain-text section headings: "SECTION N — TITLE" or "ARTIFACT HEADER"
   html = html.replace(/^(SECTION \d+ [—–-].+|ARTIFACT HEADER|VALIDATION \(REQUIRED\))$/gm,
