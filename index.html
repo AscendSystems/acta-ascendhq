@@ -1395,7 +1395,7 @@ Repeatable Outcomes:
   [list]
 
 SECTION 5 — FIXED / BINDING CONSTRAINTS (AUTHORITATIVE)
-Financial Constraint: [state floor rate, target rate, and income gap rule. ROUTING VS CEILING DISTINCTION: distinguish market routing from earning ceiling. The market does not route the user to $200k+ roles consistently at current classification — that is the routing problem. $200k+ is not structurally unreachable: contract Integration Director/Lead roles at $120–150/hr ($200k+ annualised) are accessible without a title change. State this as a routing problem, not an earnings ceiling.]
+Financial Constraint: [state floor rate, target rate, and income gap rule]
 Time Constraint: [state as ASAP Critical if applicable — not as a calendar window]
 Employment Model Constraint: [state]
 Location Constraint: [state underlying binding condition, not surface preference]
@@ -1423,7 +1423,16 @@ Current Position: [Confirm / Correct — state correction if needed]
 Market Classification: [Confirm / Correct — state correction if needed]
 Constraints: [Confirm / Correct — state correction if needed]
 Dominant Constraint: [Confirm / Correct — state correction if needed]
-Execution Mode: [Confirm / Correct — state correction if needed]`
+Execution Mode: [Confirm / Correct — state correction if needed]
+
+VALIDATION GATE — MANDATORY
+This is a hard gate. The chain does not advance until the user explicitly confirms or corrects this output. After presenting the validation fields above, end the output with the following prompt exactly as written:
+
+---
+CONFIRMATION REQUIRED: Review Section 9 above. If all fields are accurate, reply CONFIRMED to proceed to GPT-02. If any field requires correction, state the correction before confirming. Do not proceed to GPT-02 with an unconfirmed GPT-01 output.
+---
+
+The artifact ends after this prompt. Add no further content.`
   },
 
   gpt02: {
